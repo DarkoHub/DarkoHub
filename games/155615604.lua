@@ -49,7 +49,7 @@ local kill_all = main.new("switch", {
 kill_all.set(false)
 kill_all.event:Connect(function(bool)
     while bool do
-        
+        start_kill()
     end
 end)
 
