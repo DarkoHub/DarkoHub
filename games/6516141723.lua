@@ -19,6 +19,7 @@ local entities = {
     "Eyes"
 }
 local current_room_location = 0
+local auto_replay_wait = false
 
 
 local window = engine.new({
@@ -150,7 +151,14 @@ RunService.RenderStepped:Connect(function()
     end
     if auto_replay.on then
         if lp.Character.Humanoid.Health == 0 then
-            game:GetService("ReplicatedStorage"):WaitForChild("RemotesFolder"):WaitForChild("PlayAgain"):FireServer()
+            if auto_replay_wait then
+                return
+            else
+                auto_replay_wait = true
+                task.wait(4)
+                game:GetService("ReplicatedStorage"):WaitForChild("RemotesFolder"):WaitForChild("PlayAgain"):FireServer()
+                auto_replay_wait = false
+            end
         end
     end
 end)
