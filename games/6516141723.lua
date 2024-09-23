@@ -1,23 +1,59 @@
+
 local engine = loadstring(game:HttpGet("https://raw.githubusercontent.com/Singularity5490/rbimgui-2/main/rbimgui-2.lua"))()
+local plrs = game:GetService("Players")
+local lp = plrs.LocalPlayer
 local entities = {
     "RushMoving",
     "Eyes"
 }
+local current_room_location = 0
 
 local window = engine.new({
     text = "Darko | Doors | "..game.PlaceId,
-    size = Vector2.new(300, 200),
+    size = Vector2.new(450, 200),
 })
 window.open()
 
-local main = window.new({
-    text = "Main",
+local debug = window.new({
+    text = "Debug",
 })
 
-local is_entity = main.new("label", {
+local is_entity = debug.new("label", {
     text = "Is Entity: false | nil",
     color = Color3.new(1, 0, 0),
 })
+
+local lp_health = debug.new("label", {
+    text = "Health: "..lp.Character.Humanoid.Health,
+    color = Color3.new(0, 1, 0),
+})
+
+local lp_position = debug.new("label", {
+    text = "Position: "..tostring(lp.Character.HumanoidRootPart.Position),
+    color = Color3.new(0.5, 0.5, 0.5),
+})
+
+local current_room = debug.new("label", {
+    text = "Current Room: 0",
+    color = Color3.new(0.5, 0, 0.5),
+})
+
+local locate_key = debug.new("button", {
+    text = "Locate Key",
+})
+locate_key.event:Connect(function()
+    for _, v in pairs(workspace.CurrentRooms:FindFirstChild(current_room_location):GetDescendants()) do
+        if v.Name == "KeyObtain" then
+            if v:FindFirstChild("locate esp") then
+                return
+            else
+                local esp = Instance.new("Highlight")
+                esp.Name = "locate esp"
+                esp.Parent = v
+            end
+        end
+    end
+end)
 
 workspace.ChildAdded:Connect(function(child)
     if table.find(entities, tostring(child.Name)) then
@@ -43,4 +79,25 @@ workspace.ChildRemoved:Connect(function(child)
             Duration = 5;
         })
     end
+end)
+
+lp.Character.Humanoid.HealthChanged:Connect(function(health)
+    if health > 75 then
+        lp_health.setColor(Color3.new(0, 1, 0))
+    elseif health > 25 then
+        lp_health.setColor(Color3.new(1, 1, 0))
+    else
+        lp_health.setColor(Color3.new(1, 0, 0))
+    end
+    lp_health.setText("Health: "..health)
+end)
+
+lp.Character.Humanoid:GetPropertyChangedSignal("MoveDirection"):Connect(function()
+    task.wait(0.1)
+    lp_position.setText("Position: "..tostring(lp.Character.HumanoidRootPart.Position))
+end)
+
+workspace.CurrentRooms.ChildAdded:Connect(function(child)
+    current_room_location = tonumber(child.Name) - 1
+    current_room.setText("Current Room: "..tostring(current_room_location))
 end)
