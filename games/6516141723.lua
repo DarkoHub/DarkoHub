@@ -42,7 +42,7 @@ field_of_view.event:Connect(function(x)
 end)
 
 RunService.RenderStepped:Connect(function()
-    mainGameSrc.fov = field_of_view.value
+    mainGameSrc.fovtarget = field_of_view.value
 end)
 
 -- << DEBUG >> --
