@@ -1,18 +1,51 @@
-
 local engine = loadstring(game:HttpGet("https://raw.githubusercontent.com/Singularity5490/rbimgui-2/main/rbimgui-2.lua"))()
+
+local RunService = game:GetService("RunService")
+
 local plrs = game:GetService("Players")
 local lp = plrs.LocalPlayer
+local playerGui = lp.PlayerGui
+
+local mainUI = playerGui:WaitForChild("MainUI")
+local mainGame = mainUI:WaitForChild("Initiator"):WaitForChild("Main_Game")
+local mainGameSrc = require(mainGame)
+
 local entities = {
     "RushMoving",
     "Eyes"
 }
 local current_room_location = 0
 
+
 local window = engine.new({
     text = "Darko | Doors | "..game.PlaceId,
     size = Vector2.new(450, 200),
 })
 window.open()
+
+-- << MISC >> --
+
+local misc = window.new({
+    text = "Misc",
+})
+
+local field_of_view = misc.new("slider", {
+    text = "FOV",
+    color = Color3.new(0, 0, 0),
+    min = 70,
+    max = 120,
+    value = 70,
+    rounding = 10,
+})
+field_of_view.event:Connect(function(x)
+    mainGameSrc.fovtarget = x
+end)
+
+RunService.RenderStepped:Connect(function()
+    mainGameSrc.fov = field_of_view.value
+end)
+
+-- << DEBUG >> --
 
 local debug = window.new({
     text = "Debug",
@@ -41,6 +74,9 @@ local current_room = debug.new("label", {
 local locate_key = debug.new("button", {
     text = "Locate Key",
 })
+
+
+
 locate_key.event:Connect(function()
     for _, v in pairs(workspace.CurrentRooms:FindFirstChild(current_room_location):GetDescendants()) do
         if v.Name == "KeyObtain" then
