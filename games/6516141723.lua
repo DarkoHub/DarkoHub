@@ -1,3 +1,7 @@
+-- TODO --
+-- Make debug and optional loadstring
+-- Maybe make this script a own project not in the Darko project
+
 local engine = loadstring(game:HttpGet("https://raw.githubusercontent.com/Singularity5490/rbimgui-2/main/rbimgui-2.lua"))()
 
 local RunService = game:GetService("RunService")
@@ -41,9 +45,9 @@ field_of_view.event:Connect(function(x)
     mainGameSrc.fovtarget = x
 end)
 
-RunService.RenderStepped:Connect(function()
-    mainGameSrc.fovtarget = field_of_view.value
-end)
+local auto_replay = misc.new("switch", {
+    text = "Auto Replay",
+})
 
 -- << DEBUG >> --
 
@@ -75,7 +79,7 @@ local locate_key = debug.new("button", {
     text = "Locate Key",
 })
 
-
+-- << FUNCTIONS >> --
 
 locate_key.event:Connect(function()
     for _, v in pairs(workspace.CurrentRooms:FindFirstChild(current_room_location):GetDescendants()) do
@@ -128,12 +132,25 @@ lp.Character.Humanoid.HealthChanged:Connect(function(health)
     lp_health.setText("Health: "..health)
 end)
 
-lp.Character.Humanoid:GetPropertyChangedSignal("MoveDirection"):Connect(function()
-    task.wait(0.1)
-    lp_position.setText("Position: "..tostring(lp.Character.HumanoidRootPart.Position))
-end)
+-- Might slow down the game
+
+-- lp.Character.Humanoid:GetPropertyChangedSignal("MoveDirection"):Connect(function()
+--     task.wait(0.1)
+--     lp_position.setText("Position: "..tostring(lp.Character.HumanoidRootPart.Position))
+-- end)
 
 workspace.CurrentRooms.ChildAdded:Connect(function(child)
     current_room_location = tonumber(child.Name) - 1
     current_room.setText("Current Room: "..tostring(current_room_location))
+end)
+
+RunService.RenderStepped:Connect(function()
+    if mainGameSrc then
+        mainGameSrc.fovtarget = field_of_view.value
+    end
+    if auto_replay.on then
+        if lp.Character.Humanoid.Health == 0 then
+            game:GetService("ReplicatedStorage"):WaitForChild("RemotesFolder"):WaitForChild("PlayAgain"):FireServer()
+        end
+    end
 end)
