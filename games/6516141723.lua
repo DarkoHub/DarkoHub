@@ -16,33 +16,29 @@ local mainUI = playerGui:WaitForChild("MainUI")
 local mainGame = mainUI:WaitForChild("Initiator"):WaitForChild("Main_Game")
 local mainGameSrc = require(mainGame)
 
+local entities = {"RushMoving", "Eyes"}
+local currentRoom = 0
+local nextRoom = 0
+local auto_replay_wait = false
+
 local Script = {
-    Functions = {},
     ESPTable = {
-        Chest = {},
-        Door = {},
-        Entity = {},
-        SideEntity = {},
-        Gold = {},
-        Guiding = {},
-        Item = {},
         Objective = {},
-        Player = {},
-        HidingSpot = {},
-        None = {}
     },
+    Functions = {},
 }
+
 type ESP = {
     Color: Color3,
     IsEntity: boolean,
+    IsDoubleDoor: boolean,
     Object: Instance,
+    Offset: Vector3,
     Text: string,
     TextParent: Instance,
     Type: string,
 }
-local entities = {"RushMoving", "Eyes"}
-local current_room_location = 0
-local auto_replay_wait = false
+
 
 
 local window = engine.new({
@@ -75,8 +71,8 @@ local debug = window.new({
 
 -- << ESP >> --
 
-local esp_enabled = esp.new("switch", {
-    text = "ESP Enabled",
+local objectiveESP = esp.new("switch", {
+    text = "Objective ESP",
 })
 
 -- << VISUALS >> --
@@ -133,20 +129,19 @@ local current_room = debug.new("label", {
     color = Color3.new(0.5, 0, 0.5),
 })
 
-local locate_key = debug.new("button", {
-    text = "Locate Key",
-})
-
 -- << FUNCTIONS >> --
 
 function Script.Functions.ESP(args: ESP)
+    if not args.Object then return Script.Functions.Warn("ESP Object is nil") end
 
     local ESPManager = {
-        Color = args.Color,
-        IsEntity = args.IsEntity,
         Object = args.Object,
-        Text = args.Text,
+        Text = args.Text or "No Text",
         TextParent = args.TextParent,
+        Color = args.Color or Color3.new(),
+        Offset = args.Offset or Vector3.zero,
+        IsEntity = args.IsEntity or false,
+        IsDoubleDoor = args.IsDoubleDoor or false,
         Type = args.Type or "None",
 
         Highlights = {},
@@ -155,18 +150,6 @@ function Script.Functions.ESP(args: ESP)
     }
 
     local tableIndex = #Script.ESPTable[ESPManager.Type] + 1
-
-    local highlight = Instance.new("Highlight") do
-        highlight.Adornee = ESPManager.Object
-        highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-        highlight.Parent = ESPManager.Object
-    end
-    table.insert(ESPManager.Highlights, highlight)
-
-    if ESPManager.IsEntity and ESPManager.Object.PrimaryPart.Transparency == 1 then
-        ESPManager.Humanoid = Instance.new("Humanoid", ESPManager.Object)
-        ESPManager.Object.PrimaryPart.Transparency = 0.99
-    end
 
     local billboardGui = Instance.new("BillboardGui") do
         billboardGui.Adornee = ESPManager.TextParent or ESPManager.Object
@@ -212,34 +195,19 @@ function Script.Functions.ESP(args: ESP)
         end
     end
 
-    ESPManager.RSConnection = RunService.Stepped:Connect(function()
-        if not ESPManager.Object or not ESPManager.Object:IsDescendantOf(workspace) then
-            ESPManager.Destroy()
-            return
-        end
-
-        for _, highlight in pairs(ESPManager.Highlights) do
-            highlight.Enabled = esp_enabled.on
-        end
-    end)
-
     Script.ESPTable[ESPManager.Type][tableIndex] = ESPManager
     return ESPManager
 end
 
-locate_key.event:Connect(function()
-    for _, v in pairs(workspace.CurrentRooms:FindFirstChild(current_room_location):GetDescendants()) do
-        if v.Name == "KeyObtain" then
-            if v:FindFirstChild("locate esp") then
-                return
-            else
-                local esp = Instance.new("Highlight")
-                esp.Name = "locate esp"
-                esp.Parent = v
-            end
-        end
+function Script.Functions.ObjectiveESP(child)
+    if child.Name == "KeyObtain" then
+        Script.Functions.ESP({
+            Type = "Objective",
+            Object = child,
+            Text = "Key",
+        })
     end
-end)
+end
 
 workspace.ChildAdded:Connect(function(child)
     if table.find(entities, tostring(child.Name)) then
@@ -285,9 +253,29 @@ end)
 --     lp_position.setText("Position: "..tostring(lp.Character.HumanoidRootPart.Position))
 -- end)
 
-workspace.CurrentRooms.ChildAdded:Connect(function(child)
-    current_room_location = tonumber(child.Name) - 1
-    current_room.setText("Current Room: "..tostring(current_room_location))
+lp:GetAttributeChangedSignal("CurrentRoom"):Connect(function()
+    currentRoom = lp:GetAttribute("CurrentRoom")
+    nextRoom = currentRoom + 1
+
+    local currentRoomModel = workspace.CurrentRooms:FindFirstChild(currentRoom)
+    local nextRoomModel = workspace.CurrentRooms:FindFirstChild(nextRoom)
+
+    current_room.setText("Current Room: "..tostring(currentRoom))
+
+    -- if objectiveESP.on then
+    --     for _, objectiveEsp in pairs(Script.ESPTable.Objective) do
+    --         objectiveEsp.Destroy()
+    --     end
+    -- end
+
+    if currentRoomModel then
+        for _, asset in pairs(currentRoomModel:GetDescendants()) do
+            if objectiveESP.on then
+                task.spawn(Script.Functions.ObjectiveESP, asset)
+            end
+            --...
+        end
+    end
 end)
 
 RunService.RenderStepped:Connect(function()
